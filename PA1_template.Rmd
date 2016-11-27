@@ -1,0 +1,112 @@
+---
+title: "Reproducible Research"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require(dplyr)
+require(ggplot2)
+```
+
+## Course Project 1
+
+### What is mean total number of steps taken per day?
+1. The total number of steps taken per day.
+```{r }
+activity<-read.csv(file = "/Users/alexeypogorelov/Downloads/activity.csv")
+activity<-tbl_df(activity)
+output1<-activity %>%
+    group_by(date) %>%
+      summarise(tot_step=sum(steps))
+```
+2. Histogram of the total number of steps taken each day
+
+```{r}
+ggplot(output1,aes(tot_step))+geom_histogram()+ggtitle("Histogram of total steps taken per day")+xlab("")+ylab("")
+
+```
+
+3. The mean of the total number of steps taken per day is 
+`r format(mean(output1$tot_step,na.rm = TRUE))`, while the median is `r median(output1$tot_step,na.rm = TRUE)`
+
+### What is the average daily activity pattern?
+
+1. The average number of steps taken, averaged across all days (y-axis)
+
+```{r}
+output2<-activity %>%
+  group_by(interval) %>%
+  summarise(av_step=mean(steps,na.rm = TRUE))
+
+ggplot(output2,aes(x=interval,y=av_step))+geom_line()+ggtitle("Average number of steps taken")+xlab("5-minute interval")+ylab("")
+
+```
+
+2. Interval number `r as.numeric(arrange(output2,desc(av_step))[1,1])` on average across all the days in the dataset contains the maximum number of steps.
+
+### Imputing missing values.
+
+1. The total number of missing values in the dataset `r sum(is.na(activity))`
+
+2. Let's substitute missing values with the mean of 5-min interval
+```{r}
+activity3<-full_join(activity,output2,by="interval")
+
+activity3$steps<-ifelse(is.na(activity3$steps),activity3$av_step,activity3$steps)
+activity3$av_step<-NULL
+```
+
+3. The new data set where missing values substituted with interval means 
+```{r}
+head(activity3)
+```
+
+4.
+
+```{r}
+output3<-activity3 %>%
+  group_by(date) %>%
+  summarise(tot_step=sum(steps))
+
+ggplot(output3,aes(tot_step))+geom_histogram()+ggtitle("Histogram of total steps taken per day")+xlab("")+ylab("")
+
+```
+
+5.The mean of the total number of steps taken per day is 
+`r format(mean(output3$tot_step))`, while the median is `r format(median(output3$tot_step))`
+
+### Are there differences in activity patterns between weekdays and weekends?
+
+
+1. 
+
+```{r}
+activity2<-activity3 %>%
+  mutate(factor=ifelse(weekdays(as.Date(activity3$date),abbreviate=TRUE) %in% c("Sat","Sun"),"weekend","weekday"))
+
+```
+
+2.
+
+```{r }
+output4<-activity2 %>%
+  group_by(interval) %>%
+  filter(factor=="weekday") %>%
+  summarise(av_step=mean(steps,na.rm = TRUE))
+
+ggplot(output4,aes(x=interval,y=av_step))+geom_line()+ggtitle("Average number of steps taken during weekdays")+xlab("5-minute interval")+ylab("")
+
+```
+
+
+```{r}
+output5<-activity2 %>%
+  group_by(interval) %>%
+  filter(factor=="weekend") %>%
+  summarise(av_step=mean(steps,na.rm = TRUE))
+
+ggplot(output5,aes(x=interval,y=av_step))+geom_line()+ggtitle("Average number of steps taken during weekends")+xlab("5-minute interval")+ylab("")
+
+```
+
